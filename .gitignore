@@ -1,0 +1,73 @@
+# Node.js dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+coverage/
+.tmp/
+.temp/
+
+# TypeScript incremental build info
+*.tsbuildinfo
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# OS / Editor junk
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# Misc caches
+.cache/
+.next/
+.vercel/
+.eslintcache
+
+# Local test reports
+reports/
+
+# Runtime data
+*.pid
+*.pid.lock
+
+# Coverage / instrumentation
+nyc_output/
+
+# Type checking artifacts
+# (if using tsc --emitDeclarationOnly maybe ensure dist/ is ignored already)
+
+# Generated types
+**/*.d.ts
+!src/**/*.d.ts  # Keep any hand-maintained declaration files inside src if needed (adjust as required)
+
+# Lock files (commit these for deterministic installs)
+# If you use npm this will be package-lock.json
+# If you use yarn it will be yarn.lock
+# If you use pnpm it will be pnpm-lock.yaml
+# All are intentionally NOT ignored.
+# (Remove specific lines below to ignore one, but that is discouraged.)
+# yarn.lock
+# pnpm-lock.yaml
+
+# Temporary scratch files
+*.local.*
+
+# Firebase / other service configs
+serviceAccount*.json
+
+# Git merge / rebase artifacts
+*.orig
