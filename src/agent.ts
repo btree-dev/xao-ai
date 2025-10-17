@@ -1,7 +1,7 @@
 import { GameAgent, LLMModel } from "@virtuals-protocol/game";
-import alchemyPlugin from "./alchemyPlugin";
-import { TwitterWorker } from "./worker";
+import { TwitterWorker } from "./twitterWorker";
 import dotenv from "dotenv";
+import AlchemyPlugin from "./alchemyPlugin";
 
 dotenv.config();
 
@@ -12,6 +12,16 @@ if (!process.env.VIRTUALS_API_TOKEN) {
 if (!process.env.GAME_TWITTER_ACCESS_TOKEN) {
     throw new Error('GAME_TWITTER_ACCESS_TOKEN is required in environment variables');
 }
+
+if (!process.env.ALCHEMY_API_KEY) {
+    throw new Error('ALCHEMY_API_KEY is required in environment variables');
+}
+
+const alchemyPlugin = new AlchemyPlugin({
+    credentials: {
+        apiKey: process.env.ALCHEMY_API_KEY || "",
+    },
+});
 
 export const activity_agent = new GameAgent(process.env.VIRTUALS_API_TOKEN, {
     name: "XAO Arbitration Agent",

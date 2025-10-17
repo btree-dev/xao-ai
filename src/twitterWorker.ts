@@ -17,16 +17,14 @@ const twitterPlugin = new TwitterPlugin({
 
 // Create a demo worker with our functions
 export const TwitterWorker = new GameWorker({
-      id: "twitter_worker",
-      name: "Twitter Worker",
-      description: "Twitter integration worker",
-      functions: [
-        twitterPlugin.searchTweetsFunction
-      ],
-      getEnvironment: async () => {
-        return {
-          ...(await twitterPlugin.getMetrics()),
-          username: "xao_ai_bot",
-        };
-      },
-    }); 
+  id: "twitter_worker",
+  name: "Twitter Worker",
+  description: "Twitter integration worker",
+  functions: [twitterPlugin.searchTweetsFunction],
+  getEnvironment: async () => {
+    return {
+      ...(await twitterPlugin.getMetrics()),
+      username: "xao_ai_bot",
+    };
+  },
+});

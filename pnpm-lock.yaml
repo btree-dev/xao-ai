@@ -20,6 +20,9 @@ importers:
       '@virtuals-protocol/game-twitter-plugin':
         specifier: ^0.1.4
         version: 0.1.11
+      axios:
+        specifier: ^1.7.7
+        version: 1.12.2
       dotenv:
         specifier: ^16.4.7
         version: 16.6.1
