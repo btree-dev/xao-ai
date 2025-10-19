@@ -1,9 +1,12 @@
 import { GameWorker } from "@virtuals-protocol/game";
 import TwitterPlugin from "@virtuals-protocol/game-twitter-plugin";
 import { TwitterApi } from "@virtuals-protocol/game-twitter-node";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const gameTwitterClient = new TwitterApi({
-  gameTwitterAccessToken: process.env.GAME_TWITTER_ACCESS_TOKEN,
+  gameTwitterAccessToken: process.env.GAME_TWITTER_ACCESS_TOKEN
 });
 
 // Create a worker with the functions
