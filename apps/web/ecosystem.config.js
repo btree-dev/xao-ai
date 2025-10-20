@@ -1,11 +1,12 @@
-export default {
+module.exports = {
   apps: [
     {
       name: 'perf-web',
-      script: './server.js',
+      script: './server.cjs',
       cwd: './apps/web',
       instances: 1,
       exec_mode: 'fork',
+      watch: false,
       env: {
         PORT: 3000,
         NODE_ENV: 'production',
