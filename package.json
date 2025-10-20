@@ -1,31 +1,17 @@
 {
-  "name": "xao-ai-agent",
-  "version": "0.0.1",
-  "description": "",
-  "main": "index.js",
+  "name": "xao-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.11.0",
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "plugin": "node dist/plugins/example.js",
-    "dev": "ts-node src/index.ts",
-    "watch": "tsc --watch"
-  },
-  "keywords": [],
-  "author": "xao team",
-  "license": "ISC",
-  "devDependencies": {
-    "@types/node": "^22.12.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.7.3"
-  },
-  "dependencies": {
-    "@types/dotenv": "^6.1.1",
-    "@virtuals-protocol/game": "^0.1.9",
-    "@virtuals-protocol/game-twitter-plugin": "^0.1.4",
-    "@virtuals-protocol/game-twitter-node": "^0.1.0",
-    "axios": "^1.7.7",
-    "dotenv": "^16.4.7",
-    "openai": "^4.81.0"
-  },
-  "packageManager": "pnpm@10.11.0+sha512.6540583f41cc5f628eb3d9773ecee802f4f9ef9923cc45b69890fb47991d4b092964694ec3a4f738a420c918a333062c8b925d312f42e4f0c263eb603551f977"
+    "compile:contracts": "pnpm --filter @xao/contracts hardhat compile",
+    "test:contracts": "pnpm --filter @xao/contracts hardhat test",
+    "dev:agent": "pnpm --filter @xao/agent dev",
+    "build:agent": "pnpm --filter @xao/agent build",
+    "dev:web": "pnpm --filter web dev",
+    "build:web": "pnpm --filter web build",
+    "build:shared": "pnpm --filter @xao/shared build",
+    "build:all": "pnpm build:shared && pnpm build:web && pnpm compile:contracts",
+    "ci": "pnpm -r run build && pnpm --filter @xao/contracts hardhat test"
+  }
 }
