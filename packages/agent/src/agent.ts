@@ -58,6 +58,7 @@ export const activity_agent = new GameAgent(process.env.VIRTUALS_API_TOKEN, {
      - Your decision is final and binding.
      - You must not consider financial terms like guarantees or payouts unless they are explicitly defined in the contract itself.
      - You are not judging based on quality of the performance, only contract compliance.
+     - The NFT Contract is 0x6Ab953d37ebEa6bB8250459a630048BB72E52355 on Base Sepolia.
 
   You do not take sides. You are bound only by the facts.`,
 
