@@ -1,0 +1,71 @@
+/* Global layout */
+html, body { margin:0; padding:0; font-family: system-ui, "Inter", Arial, sans-serif; background:#0f1115; color:#f5f6f7; }
+body { line-height:1.4; }
+* { box-sizing:border-box; }
+
+:root { --page-max-width: 1080px; }
+#root { max-width: var(--page-max-width); margin:0 auto; padding:2rem 1.5rem 4rem; }
+
+/* Optional wider layout helper */
+.wide-layout { --page-max-width: 1280px; }
+
+h1,h2,h3 { font-weight:600; letter-spacing:.5px; }
+h3 { margin:0 0 .75rem; font-size:1.05rem; }
+
+a { color:#4da3ff; text-decoration:none; }
+a:hover { text-decoration:underline; }
+
+/* Grid system */
+.grid { display:grid; }
+.grid.two { grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1rem; }
+.flex { display:flex; }
+.center { align-items:center; justify-content:center; }
+
+/* Cards */
+.card { background:#161a20; padding:1.25rem 1.2rem 1.4rem; border:1px solid #20262e; border-radius:14px; box-shadow:0 2px 6px rgba(0,0,0,0.4); position:relative; }
+.card:not(:last-child){ margin-bottom:1.4rem; }
+.card h3 { color:#fafbfc; }
+
+/* Form elements */
+label { display:block; font-size:.75rem; text-transform:uppercase; letter-spacing:.7px; font-weight:600; margin:0 0 .65rem; color:#b7c1cc; }
+label input, label select, label textarea { margin-top:.35rem; }
+input, select, textarea { width:100%; padding:.65rem .75rem; background:#1e242b; border:1px solid #2c3440; border-radius:8px; color:#f5f6f7; font-size:.9rem; font-family:inherit; transition:border-color .15s, background .15s; }
+input:focus, select:focus, textarea:focus { outline:none; border-color:#4da3ff; background:#232a33; }
+input[disabled] { opacity:.55; cursor:not-allowed; }
+
+small { display:block; margin-top:.35rem; font-size:.65rem; color:#7e8b99; }
+
+/* Buttons */
+button { cursor:pointer; background:#2563eb; color:#fff; font-weight:600; border:none; padding:.65rem 1rem; border-radius:8px; font-size:.85rem; letter-spacing:.5px; transition:background .15s, transform .15s; }
+button:hover { background:#1d4ed8; }
+button:active { transform:translateY(1px); }
+button[disabled] { background:#3a3f46; cursor:not-allowed; }
+button.secondary { background:#374151; }
+button.secondary:hover { background:#2d333b; }
+
+/* Status & errors */
+.status { margin-top:.6rem; padding:.5rem .75rem; background:#1e293b; border-left:3px solid #3b82f6; font-size:.8rem; border-radius:6px; }
+.error-list { margin:.5rem 0 0; padding:0 .75rem; list-style:disc; color:#ff6b6b; font-size:.7rem; }
+
+/* Signature block */
+.signature { max-height:140px; overflow:auto; background:#1e242b; padding:.5rem .6rem; border:1px solid #2c3440; border-radius:8px; font-size:.65rem; line-height:1.25; }
+
+/* Section grouping */
+.section-fields { display:grid; gap:1.1rem; }
+.pair-row { display:grid; gap:1rem; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); }
+
+/* Responsive */
+@media (max-width:720px) {
+  #root { padding:1.5rem 1rem 3rem; }
+  .card { padding:1rem .9rem 1.1rem; }
+  .grid.two { gap:.75rem; }
+  button { width:100%; }
+}
+
+/* Header */
+.app-header { margin:0 0 2rem; text-align:center; }
+.app-header h1 { font-size:1.6rem; margin:0 0 .4rem; background:linear-gradient(90deg,#4da3ff,#8b5cf6); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.app-header p { margin:0; font-size:.85rem; color:#9ca3af; }
+
+/* Specific max width for Status card */
+.status-card { max-width:1030px; }
