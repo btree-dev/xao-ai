@@ -5,15 +5,13 @@ import { ethers } from 'ethers';
 import { AgreementInput, validateAgreementInput } from '@xao/shared/agreement';
 import abi from './abi/PerformanceAgreementNFT.json';
 
-// Hard-coded deployed PerformanceAgreementNFT contract address (requested)
-const CONTRACT_ADDRESS = '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0';
-// Preserve the raw string so we can distinguish between missing and numeric '0'
+// Environment-based deployment config (Base Sepolia by default)
+// Provide VITE_CONTRACT_ADDRESS_BASE_SEPOLIA after deploying.
+const CONTRACT_ADDRESS = (import.meta.env.VITE_CONTRACT_ADDRESS_BASE_SEPOLIA as string | undefined) || '';
+// Base Sepolia chain id 84532; allow override with VITE_TARGET_CHAIN_ID
 const RAW_ENV_CHAIN_ID = import.meta.env.VITE_TARGET_CHAIN_ID as string | undefined;
-const ENV_CHAIN_ID: number | undefined = RAW_ENV_CHAIN_ID && RAW_ENV_CHAIN_ID.trim() !== ''
-  ? Number(RAW_ENV_CHAIN_ID)
-  : undefined;
-const HARDHAT_CHAIN_ID = 31337;
-const HARDHAT_CHAIN_HEX = '0x' + HARDHAT_CHAIN_ID.toString(16); // 0x7a69
+const TARGET_CHAIN_ID = RAW_ENV_CHAIN_ID && RAW_ENV_CHAIN_ID.trim() !== '' ? Number(RAW_ENV_CHAIN_ID) : 84532;
+const TARGET_CHAIN_HEX = '0x' + TARGET_CHAIN_ID.toString(16);
 
 interface AgreementDraftForm {
   venueName: string;
@@ -82,17 +80,53 @@ function VenuePage({ contractAddress }: { contractAddress: string }) {
   async function refreshOwned() {
     if (!signer || !contractAddress) return;
     try {
+      const net = await signer.provider!.getNetwork();
+      if (Number(net.chainId) !== TARGET_CHAIN_ID) {
+        setStatusMsg(`Wrong network for venue refresh (chainId ${Number(net.chainId)}). Expected ${TARGET_CHAIN_ID}.`);
+        return;
+      }
+      // Throttle multiple rapid refreshes (basic debounce)
+      if ((window as any)._lastVenueRefresh && Date.now() - (window as any)._lastVenueRefresh < 1000) {
+        setStatusMsg('Refresh throttled (wait a moment)');
+        return;
+      }
+      (window as any)._lastVenueRefresh = Date.now();
+      const code = await signer.provider!.getCode(contractAddress);
+      if (code === '0x') {
+        setStatusMsg('No contract code at address on current chain. Deploy locally or adjust CONTRACT_ADDRESS.');
+        return;
+      }
       const c = new ethers.Contract(contractAddress, abi as any, signer);
       const ids: number[] = await c.tokensOfOwner(address);
       const list: Array<{tokenId:number; data:any}> = [];
       for (const id of ids) { try { const uri = await c.tokenURI(id); list.push({ tokenId: id, data: parseDataUriJson(uri) }); } catch {} }
       setOwned(list);
-    } catch (e:any) { setStatusMsg('Owned refresh failed: ' + e.message); }
+    } catch (e:any) {
+      if (e?.message?.includes('circuit breaker')) {
+        setStatusMsg('Provider circuit breaker open: likely repeated failing RPC calls. Ensure Hardhat node running & contract deployed.');
+      } else {
+        setStatusMsg('Owned refresh failed: ' + e.message);
+      }
+    }
   }
 
   async function createVenue() {
     if (!signer) { setStatusMsg('Connect wallet first'); return; }
     if (!draft.artistWallet) { setStatusMsg('Artist wallet required'); return; }
+    // Ensure we're on expected target chain
+    try {
+      const net = await signer.provider!.getNetwork();
+      if (Number(net.chainId) !== TARGET_CHAIN_ID) {
+        setStatusMsg(`Wrong network (chainId ${Number(net.chainId)}). Switch wallet to chain ${TARGET_CHAIN_ID}.`);
+        return;
+      }
+    } catch {}
+    // Verify contract code exists before attempting tx (avoids MetaMask circuit breaker spam)
+    const code = await signer.provider!.getCode(contractAddress);
+    if (code === '0x') {
+      setStatusMsg('No contract code at address. Deploy contract or update CONTRACT_ADDRESS.');
+      return;
+    }
     const startTs = Math.floor(new Date(draft.startTime).getTime() / 1000);
     const input: AgreementInput = {
       venueName: draft.venueName,
@@ -144,10 +178,28 @@ function VenuePage({ contractAddress }: { contractAddress: string }) {
       </div>
       {createdTokenId && <div className='status-card'>Created venue token #{createdTokenId}. Share this id with artist for finalization.</div>}
       {errors.length > 0 && <ul style={{color:'#d44'}}>{errors.map(er => <li key={er}>{er}</li>)}</ul>}
-      <h3>Your Agreements</h3>
+      <h3>Your Venue Agreements</h3>
       <button onClick={refreshOwned}>Refresh</button>
-      <ul>{owned.map(o => <li key={o.tokenId}>#{o.tokenId} {o.data?.venueName} status {o.data?.status}</li>)}</ul>
-      <div style={{marginTop:'1rem', fontSize:'.8rem', opacity:.8}}>Chain ID: {networkChainId}</div>
+      {owned.length === 0 && <div style={{fontSize:'.7rem', opacity:.6}}>No venue agreements yet.</div>}
+      {owned.length > 0 && (
+        <div style={{display:'grid', gap:'.6rem', gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))', marginTop:'.6rem'}}>
+          {owned.map(o => (
+            <div key={o.tokenId} style={{background:'#1e242b', border:'1px solid #2f3944', borderRadius:'8px', padding:'.5rem .6rem', fontSize:'.65rem'}}>
+              <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'.4rem'}}>
+                <strong style={{fontSize:'.75rem'}}>Venue Token #{o.tokenId}</strong>
+                <span style={{fontSize:'.55rem', padding:'.18rem .4rem', borderRadius:'4px', background:statusColor(o.data?.status)}}>{o.data?.status}</span>
+              </div>
+              <div style={{lineHeight:'1.15'}}>
+                <div><b>Venue:</b> {truncate(o.data?.venueName, 28)}</div>
+                <div><b>Start:</b> {o.data?.startTime ? new Date(Number(o.data.startTime)*1000).toLocaleDateString() : '—'}</div>
+                <div><b>Payment:</b> {o.data?.paymentAmountUsdCents ? '$'+(Number(o.data.paymentAmountUsdCents)/100).toFixed(2) : '—'}</div>
+              </div>
+              <LinkedArtistToken venueTokenId={o.tokenId} contractAddress={contractAddress} signer={signer} />
+            </div>
+          ))}
+        </div>
+      )}
+  <div style={{marginTop:'1rem', fontSize:'.8rem', opacity:.8}}>Chain ID: {networkChainId} (target {TARGET_CHAIN_ID})</div>
       <div style={{marginTop:'.5rem'}}>{statusMsg}</div>
     </div>
   );
@@ -166,6 +218,11 @@ function ArtistPage({ contractAddress }: { contractAddress: string }) {
   async function refreshOwnedArtist() {
     if (!signer || !address) return;
     try {
+      const code = await signer.provider!.getCode(contractAddress);
+      if (code === '0x') {
+        setStatusMsg('No contract code found on current chain for artist view.');
+        return;
+      }
       const c = new ethers.Contract(contractAddress, abi as any, signer);
       const ids: number[] = await c.tokensOfOwner(address);
       const list: Array<{tokenId:number; data:any}> = [];
@@ -181,6 +238,11 @@ function ArtistPage({ contractAddress }: { contractAddress: string }) {
   async function loadVenueAgreement() {
     if (!signer || !venueTokenIdInput) return;
     try {
+      const code = await signer.provider!.getCode(contractAddress);
+      if (code === '0x') {
+        setStatusMsg('No contract code at address on this chain; cannot load venue agreement.');
+        return;
+      }
       const c = new ethers.Contract(contractAddress, abi as any, signer);
       const ag = await c.getAgreement(Number(venueTokenIdInput));
       setVenueAgreement(ag);
@@ -207,6 +269,8 @@ function ArtistPage({ contractAddress }: { contractAddress: string }) {
     if (!signer) { setStatusMsg('Connect first'); return; }
     if (!artistSig) { setStatusMsg('Need artist signature'); return; }
     try {
+      const code = await signer.provider!.getCode(contractAddress);
+      if (code === '0x') { setStatusMsg('No contract code at address; finalize impossible on this network.'); return; }
       const c = new ethers.Contract(contractAddress, abi as any, signer);
       const tx = await c.artistFinalizeAndMint(Number(venueTokenIdInput), artistSig);
       setStatusMsg('Finalize tx sent');
@@ -242,18 +306,19 @@ function ArtistPage({ contractAddress }: { contractAddress: string }) {
         <button onClick={refreshOwnedArtist} disabled={!signer} style={{marginBottom:'.5rem'}}>Refresh</button>
         {ownedArtistTokens.length === 0 && <div style={{fontSize:'.7rem', opacity:.6}}>No agreement NFTs owned.</div>}
         {ownedArtistTokens.length > 0 && (
-          <div style={{display:'grid', gap:'.6rem', gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))'}}>
+          <div style={{display:'grid', gap:'.6rem', gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))'}}>
             {ownedArtistTokens.map(t => (
-              <div key={t.tokenId} style={{background:'#1e242b', border:'1px solid #2c3440', borderRadius:'8px', padding:'.55rem .6rem'}}>
-                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'.35rem'}}>
-                  <strong style={{fontSize:'.75rem'}}>Token #{t.tokenId}</strong>
-                  <span style={{fontSize:'.55rem', padding:'.2rem .4rem', borderRadius:'4px', background:statusColor(t.data.status)}}>{t.data.status}</span>
+              <div key={t.tokenId} style={{background:'#1e242b', border:'1px solid #2c3440', borderRadius:'8px', padding:'.5rem .6rem'}}>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'.4rem'}}>
+                  <strong style={{fontSize:'.75rem'}}>Artist Token #{t.tokenId}</strong>
+                  <span style={{fontSize:'.55rem', padding:'.18rem .4rem', borderRadius:'4px', background:statusColor(t.data.status)}}>{t.data.status}</span>
                 </div>
                 <div style={{fontSize:'.6rem', lineHeight:'1.15'}}>
                   <div><b>Venue:</b> {truncate(t.data.venueName, 24)}</div>
                   <div><b>Start:</b> {t.data.startTime ? new Date(Number(t.data.startTime)*1000).toLocaleDateString() : '—'}</div>
-                  <div><b>Pay:</b> {t.data.paymentAmountUsdCents ? '$'+(Number(t.data.paymentAmountUsdCents)/100).toFixed(2) : '—'}</div>
+                  <div><b>Payment:</b> {t.data.paymentAmountUsdCents ? '$'+(Number(t.data.paymentAmountUsdCents)/100).toFixed(2) : '—'}</div>
                 </div>
+                <LinkedVenueToken artistTokenId={t.tokenId} contractAddress={contractAddress} signer={signer} />
               </div>
             ))}
           </div>
@@ -265,7 +330,7 @@ function ArtistPage({ contractAddress }: { contractAddress: string }) {
 }
 
 function App() {
-  const contractAddress = CONTRACT_ADDRESS; // fixed address
+  const contractAddress = CONTRACT_ADDRESS; // env-driven
   const [route, setRoute] = useState<string>(() => (typeof window !== 'undefined' ? window.location.hash.replace('#','') : '') || '/venue');
   useEffect(() => {
     const handler = () => setRoute((window.location.hash.replace('#','')) || '/venue');
@@ -280,6 +345,7 @@ function App() {
           <a href='#/venue'>Venue Portal</a>
           <a href='#/artist'>Artist Portal</a>
         </nav>
+        <div style={{fontSize:'.6rem', opacity:.6, marginTop:'.25rem'}}>Contract: {contractAddress || 'unset'} | Target chain {TARGET_CHAIN_ID}</div>
       </header>
       <div className='section-fields'>
         {route.startsWith('/artist') ? <ArtistPage contractAddress={contractAddress} /> : <VenuePage contractAddress={contractAddress} />}
@@ -316,4 +382,53 @@ function statusColor(status?: string): string {
 function truncate(str: string | undefined, max: number): string {
   if (!str) return '';
   return str.length <= max ? str : str.slice(0, max - 1) + '…';
+}
+
+// Component: show linked artist token for a venue token
+function LinkedArtistToken({ venueTokenId, contractAddress, signer }: { venueTokenId: number; contractAddress: string; signer?: ethers.Signer }) {
+  const [linkedId, setLinkedId] = React.useState<number | null>(null);
+  const [error, setError] = React.useState<string>('');
+  React.useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      if (!signer || !contractAddress) return;
+      try {
+        const code = await signer.provider!.getCode(contractAddress);
+        if (code === '0x') return; // not deployed
+        const c = new ethers.Contract(contractAddress, abi as any, signer);
+        const id: bigint = await c.getArtistTokenForVenue(venueTokenId);
+        if (!cancelled) setLinkedId(Number(id));
+      } catch (e:any) { if (!cancelled) setError(e.message); }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [venueTokenId, contractAddress, signer]);
+  if (error) return <div style={{fontSize:'.55rem', color:'#d55'}}>Link err: {truncate(error,50)}</div>;
+  if (!linkedId) return <div style={{fontSize:'.55rem', opacity:.6, marginTop:'.3rem'}}>Artist token: not finalized</div>;
+  return <div style={{fontSize:'.55rem', marginTop:'.3rem'}}>Artist token: #{linkedId}</div>;
+}
+
+// Component: show venue token linked to an artist token (inverse mapping)
+function LinkedVenueToken({ artistTokenId, contractAddress, signer }: { artistTokenId: number; contractAddress: string; signer?: ethers.Signer }) {
+  const [venueId, setVenueId] = React.useState<number | null>(null);
+  const [error, setError] = React.useState<string>('');
+  React.useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      if (!signer || !contractAddress) return;
+      try {
+        const code = await signer.provider!.getCode(contractAddress);
+        if (code === '0x') return;
+        const c = new ethers.Contract(contractAddress, abi as any, signer);
+        // venueTokenOfArtistToken is a public mapping; Hardhat/ethers auto-generates accessor
+        const id: bigint = await c.venueTokenOfArtistToken(artistTokenId);
+        if (!cancelled) setVenueId(Number(id));
+      } catch (e:any) { if (!cancelled) setError(e.message); }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [artistTokenId, contractAddress, signer]);
+  if (error) return <div style={{fontSize:'.55rem', color:'#d55'}}>Venue link err: {truncate(error,50)}</div>;
+  if (!venueId) return <div style={{fontSize:'.55rem', opacity:.6, marginTop:'.3rem'}}>Venue token link unavailable</div>;
+  return <div style={{fontSize:'.55rem', marginTop:'.3rem'}}>Venue token: #{venueId}</div>;
 }

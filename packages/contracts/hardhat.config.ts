@@ -19,11 +19,12 @@ const config: HardhatUserConfig = {
       // accounts: automatically provided by hardhat node; if using external node, uncomment below
       // accounts: process.env.DEPLOYER_KEY ? [process.env.DEPLOYER_KEY] : undefined,
     },
-    // example: base testnet
-    // base: {
-    //   url: process.env.BASE_RPC_URL || "",
-    //   accounts: process.env.DEPLOYER_KEY ? [process.env.DEPLOYER_KEY] : [],
-    // }
+    baseSepolia: {
+      // Base Sepolia RPC: can use official or third-party provider URL via env
+      url: process.env.BASE_SEPOLIA_RPC_URL || "https://sepolia.base.org",
+      chainId: 84532,
+      accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : [],
+    },
   },
 };
 
