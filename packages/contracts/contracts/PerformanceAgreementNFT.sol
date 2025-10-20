@@ -28,7 +28,7 @@ contract PerformanceAgreementNFT is ERC721URIStorage, Ownable, EIP712 {
         bool paymentRecorded; // true once payment acknowledged
     }
 
-    enum Status { Scheduled, Completed, Disputed, Resolved }
+    enum Status { Scheduled, Completed, Disputed, Resolved, Finalized }
 
     struct AgreementInput {
         string venueName;
@@ -45,9 +45,16 @@ contract PerformanceAgreementNFT is ERC721URIStorage, Ownable, EIP712 {
     bytes32 private constant AGREEMENT_TYPEHASH = keccak256(
         "AgreementInput(string venueName,string venueAddress,uint64 startTime,uint32 durationMinutes,string artistSocialHandle,string venueSocialHandle,address artistWallet,address venueWallet,uint256 paymentAmountUsdCents)"
     );
+    bytes32 private constant ARTIST_FINALIZE_TYPEHASH = keccak256(
+        "ArtistFinalize(uint256 venueTokenId,address artistWallet)"
+    );
 
     // tokenId => Agreement
     mapping(uint256 => Agreement) private _agreements;
+    // venueTokenId => artistTokenId (0 if not finalized yet)
+    mapping(uint256 => uint256) public artistTokenOfVenue;
+    // artistTokenId => venueTokenId
+    mapping(uint256 => uint256) public venueTokenOfArtistToken;
     uint256 private _nextId = 1;
 
     event AgreementCreated(
@@ -58,7 +65,9 @@ contract PerformanceAgreementNFT is ERC721URIStorage, Ownable, EIP712 {
         uint64 startTime,
         uint256 paymentAmountUsdCents
     );
-    event AgreementSignedAndMinted(uint256 indexed tokenId, address indexed venueWallet, address indexed artistWallet);
+    event AgreementSignedAndMinted(uint256 indexed tokenId, address indexed venueWallet, address indexed artistWallet); // legacy single-phase
+    event VenueAgreementCreated(uint256 indexed venueTokenId, address indexed venueWallet, address indexed artistWallet);
+    event ArtistAgreementFinalized(uint256 indexed venueTokenId, uint256 indexed artistTokenId, address indexed artistWallet);
     event StatusChanged(uint256 indexed tokenId, Status previous, Status current, address actor);
     event PaymentRecorded(uint256 indexed tokenId, uint256 amountUsdCents, address recorder);
 
@@ -134,7 +143,12 @@ contract PerformanceAgreementNFT is ERC721URIStorage, Ownable, EIP712 {
 
     function recordPayment(uint256 tokenId) external onlyParticipant(tokenId) {
         Agreement storage a = _agreements[tokenId];
-        require(a.status == Status.Completed || a.status == Status.Resolved, "Invalid status for payment");
+        require(
+            a.status == Status.Completed ||
+            a.status == Status.Resolved ||
+            a.status == Status.Finalized,
+            "Invalid status for payment"
+        );
         require(!a.paymentRecorded, "Already recorded");
         a.paymentRecorded = true;
         emit PaymentRecorded(tokenId, a.paymentAmountUsdCents, msg.sender);
@@ -222,7 +236,9 @@ contract PerformanceAgreementNFT is ERC721URIStorage, Ownable, EIP712 {
         if (s == Status.Scheduled) return "Scheduled";
         if (s == Status.Completed) return "Completed";
         if (s == Status.Disputed) return "Disputed";
-        return "Resolved";
+        if (s == Status.Resolved) return "Resolved";
+        if (s == Status.Finalized) return "Finalized";
+        return "Scheduled"; // fallback (should not hit)
     }
 
     /// @notice Returns how many agreements have been minted so far.
@@ -250,5 +266,83 @@ contract PerformanceAgreementNFT is ERC721URIStorage, Ownable, EIP712 {
             }
         }
         return result;
+    }
+
+    // -------- Two-phase flow --------
+    /// @notice Phase 1: Venue creates an agreement NFT without artist signature.
+    /// @dev Minted to the venue wallet; later artist finalizes & mints their own linked NFT.
+    function createVenueAgreement(AgreementInput calldata input) external returns (uint256 venueTokenId) {
+        require(msg.sender == input.venueWallet, "Caller not venue wallet");
+        require(input.artistWallet != address(0) && input.venueWallet != address(0), "Zero address");
+        require(input.startTime > block.timestamp - 1 days, "Start time too old");
+        require(input.durationMinutes > 0 && input.durationMinutes <= 24 * 60, "Invalid duration");
+        require(input.paymentAmountUsdCents > 0, "Payment must be > 0");
+
+        venueTokenId = _nextId++;
+        _agreements[venueTokenId] = Agreement({
+            venueName: input.venueName,
+            venueAddress: input.venueAddress,
+            startTime: input.startTime,
+            durationMinutes: input.durationMinutes,
+            artistSocialHandle: input.artistSocialHandle,
+            venueSocialHandle: input.venueSocialHandle,
+            artistWallet: input.artistWallet,
+            venueWallet: input.venueWallet,
+            paymentAmountUsdCents: input.paymentAmountUsdCents,
+            status: Status.Scheduled,
+            paymentRecorded: false
+        });
+
+        _safeMint(input.venueWallet, venueTokenId);
+        emit AgreementCreated(venueTokenId, input.artistWallet, input.venueWallet, input.venueName, input.startTime, input.paymentAmountUsdCents);
+        emit VenueAgreementCreated(venueTokenId, input.venueWallet, input.artistWallet);
+    }
+
+    /// @notice Phase 2: Artist finalizes an existing venue agreement and mints their own NFT.
+    /// @param venueTokenId The token id of the venue-created agreement.
+    /// @param artistSignature EIP-712 signature over (venueTokenId, artistWallet).
+    /// @return artistTokenId Newly minted artist agreement token id.
+    function artistFinalizeAndMint(uint256 venueTokenId, bytes calldata artistSignature) external returns (uint256 artistTokenId) {
+        require(_ownerOf(venueTokenId) != address(0), "Venue token nonexistent");
+        require(artistTokenOfVenue[venueTokenId] == 0, "Already finalized");
+        Agreement storage venueAgreement = _agreements[venueTokenId];
+        require(venueAgreement.status == Status.Scheduled, "Bad status");
+        // Prepare struct hash for signature verification
+        bytes32 structHash = keccak256(abi.encode(
+            ARTIST_FINALIZE_TYPEHASH,
+            venueTokenId,
+            venueAgreement.artistWallet
+        ));
+        bytes32 digest = _hashTypedDataV4(structHash);
+        address signer = ECDSA.recover(digest, artistSignature);
+        require(signer == venueAgreement.artistWallet, "Bad artist signature");
+        require(msg.sender == venueAgreement.artistWallet, "Caller not artist wallet");
+
+        artistTokenId = _nextId++;
+        _agreements[artistTokenId] = Agreement({
+            venueName: venueAgreement.venueName,
+            venueAddress: venueAgreement.venueAddress,
+            startTime: venueAgreement.startTime,
+            durationMinutes: venueAgreement.durationMinutes,
+            artistSocialHandle: venueAgreement.artistSocialHandle,
+            venueSocialHandle: venueAgreement.venueSocialHandle,
+            artistWallet: venueAgreement.artistWallet,
+            venueWallet: venueAgreement.venueWallet,
+            paymentAmountUsdCents: venueAgreement.paymentAmountUsdCents,
+            status: Status.Finalized,
+            paymentRecorded: false
+        });
+        venueAgreement.status = Status.Finalized;
+        artistTokenOfVenue[venueTokenId] = artistTokenId;
+        venueTokenOfArtistToken[artistTokenId] = venueTokenId;
+        _safeMint(venueAgreement.artistWallet, artistTokenId);
+        emit AgreementCreated(artistTokenId, venueAgreement.artistWallet, venueAgreement.venueWallet, venueAgreement.venueName, venueAgreement.startTime, venueAgreement.paymentAmountUsdCents);
+        emit ArtistAgreementFinalized(venueTokenId, artistTokenId, venueAgreement.artistWallet);
+        emit StatusChanged(venueTokenId, Status.Scheduled, Status.Finalized, venueAgreement.artistWallet);
+    }
+
+    /// @notice Returns the linked artist token id for a venue agreement (0 if not finalized yet).
+    function getArtistTokenForVenue(uint256 venueTokenId) external view returns (uint256) {
+        return artistTokenOfVenue[venueTokenId];
     }
 }

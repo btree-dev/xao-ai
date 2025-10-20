@@ -7,6 +7,23 @@ build/
 coverage/
 .tmp/
 .temp/
+packages/**/dist/
+apps/**/dist/
+apps/**/build/
+
+# Hardhat & contract build artifacts (retain source under contracts/)
+packages/contracts/artifacts/
+packages/contracts/cache/
+packages/contracts/typechain-types/
+
+# Vite cache
+**/.vite
+
+# Cypress / Playwright test artifacts (if added later)
+cypress/videos/
+cypress/screenshots/
+playwright-report/
+test-results/
 
 # TypeScript incremental build info
 *.tsbuildinfo
@@ -30,6 +47,8 @@ Thumbs.db
 .vscode/*
 !.vscode/settings.json
 !.vscode/extensions.json
+!.vscode/tasks.json
+!.vscode/launch.json
 
 # Misc caches
 .cache/
@@ -53,6 +72,7 @@ nyc_output/
 # Generated types
 **/*.d.ts
 !src/**/*.d.ts  # Keep any hand-maintained declaration files inside src if needed (adjust as required)
+!packages/**/src/**/*.d.ts
 
 # Lock files (commit these for deterministic installs)
 # If you use npm this will be package-lock.json
@@ -63,6 +83,29 @@ nyc_output/
 # yarn.lock
 # pnpm-lock.yaml
 package-lock.json
+
+# Local ENS / chain snapshots
+*.chainstate
+*.tenderly
+
+# Local wallet keystore exports
+keystore-*.json
+
+# MacOS metadata
+.Spotlight-V100
+.Trashes
+
+# JetBrains shelf
+.idea/shelf/
+
+# VSCode workspace storage
+.vscode/.userdata/
+
+# Yarn 2 zero-installs (if ever used) - comment out to commit
+.yarn/cache/
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
 
 # Temporary scratch files
 *.local.*

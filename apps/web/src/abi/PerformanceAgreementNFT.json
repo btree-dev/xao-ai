@@ -1,60 +1,23 @@
 [
-  {
-    "inputs": [
-      {
-        "components": [
-          {"internalType": "string", "name": "venueName", "type": "string"},
-          {"internalType": "string", "name": "venueAddress", "type": "string"},
-          {"internalType": "uint64", "name": "startTime", "type": "uint64"},
-          {"internalType": "uint32", "name": "durationMinutes", "type": "uint32"},
-          {"internalType": "string", "name": "artistSocialHandle", "type": "string"},
-          {"internalType": "string", "name": "venueSocialHandle", "type": "string"},
-          {"internalType": "address", "name": "artistWallet", "type": "address"},
-          {"internalType": "address", "name": "venueWallet", "type": "address"},
-          {"internalType": "uint256", "name": "paymentAmountUsdCents", "type": "uint256"}
-        ],
-        "internalType": "struct PerformanceAgreementNFT.AgreementInput",
-        "name": "input",
-        "type": "tuple"
-      },
-      {"internalType": "bytes", "name": "artistSignature", "type": "bytes"}
-    ],
-    "name": "createAgreementWithArtistSig",
-    "outputs": [
-      {"internalType": "uint256", "name": "", "type": "uint256"}
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {"indexed": true, "internalType": "uint256", "name": "tokenId", "type": "uint256"},
-      {"indexed": true, "internalType": "address", "name": "venueWallet", "type": "address"},
-      {"indexed": true, "internalType": "address", "name": "artistWallet", "type": "address"}
-    ],
-    "name": "AgreementSignedAndMinted",
-    "type": "event"
-  },
-  {
-    "inputs": [],
-    "name": "totalMinted",
-    "outputs": [ {"internalType": "uint256", "name": "", "type": "uint256"} ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "nextTokenId",
-    "outputs": [ {"internalType": "uint256", "name": "", "type": "uint256"} ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [ {"internalType": "address", "name": "owner", "type": "address"} ],
-    "name": "tokensOfOwner",
-    "outputs": [ {"internalType": "uint256[]", "name": "", "type": "uint256[]"} ],
-    "stateMutability": "view",
-    "type": "function"
-  }
+  {"inputs": [], "stateMutability": "nonpayable", "type": "constructor"},
+  {"anonymous": false, "inputs": [{"indexed": true, "internalType": "uint256", "name": "tokenId", "type": "uint256"},{"indexed": true, "internalType": "address", "name": "artistWallet", "type": "address"},{"indexed": true, "internalType": "address", "name": "venueWallet", "type": "address"},{"indexed": false, "internalType": "string", "name": "venueName", "type": "string"},{"indexed": false, "internalType": "uint64", "name": "startTime", "type": "uint64"},{"indexed": false, "internalType": "uint256", "name": "paymentAmountUsdCents", "type": "uint256"}], "name": "AgreementCreated", "type": "event"},
+  {"anonymous": false, "inputs": [{"indexed": true, "internalType": "uint256", "name": "tokenId", "type": "uint256"},{"indexed": true, "internalType": "address", "name": "venueWallet", "type": "address"},{"indexed": true, "internalType": "address", "name": "artistWallet", "type": "address"}], "name": "AgreementSignedAndMinted", "type": "event"},
+  {"anonymous": false, "inputs": [{"indexed": true, "internalType": "uint256", "name": "venueTokenId", "type": "uint256"},{"indexed": true, "internalType": "address", "name": "venueWallet", "type": "address"},{"indexed": true, "internalType": "address", "name": "artistWallet", "type": "address"}], "name": "VenueAgreementCreated", "type": "event"},
+  {"anonymous": false, "inputs": [{"indexed": true, "internalType": "uint256", "name": "venueTokenId", "type": "uint256"},{"indexed": true, "internalType": "uint256", "name": "artistTokenId", "type": "uint256"},{"indexed": true, "internalType": "address", "name": "artistWallet", "type": "address"}], "name": "ArtistAgreementFinalized", "type": "event"},
+  {"anonymous": false, "inputs": [{"indexed": true, "internalType": "uint256", "name": "tokenId", "type": "uint256"},{"indexed": false, "internalType": "uint8", "name": "previous", "type": "uint8"},{"indexed": false, "internalType": "uint8", "name": "current", "type": "uint8"},{"indexed": true, "internalType": "address", "name": "actor", "type": "address"}], "name": "StatusChanged", "type": "event"},
+  {"anonymous": false, "inputs": [{"indexed": true, "internalType": "uint256", "name": "tokenId", "type": "uint256"},{"indexed": false, "internalType": "uint256", "name": "amountUsdCents", "type": "uint256"},{"indexed": true, "internalType": "address", "name": "recorder", "type": "address"}], "name": "PaymentRecorded", "type": "event"},
+  {"inputs": [{"internalType": "uint256", "name": "venueTokenId", "type": "uint256"},{"internalType": "bytes", "name": "artistSignature", "type": "bytes"}], "name": "artistFinalizeAndMint", "outputs": [{"internalType": "uint256", "name": "artistTokenId", "type": "uint256"}], "stateMutability": "nonpayable", "type": "function"},
+  {"inputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "name": "artistTokenOfVenue", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"},
+  {"inputs": [{"internalType": "uint256", "name": "tokenId", "type": "uint256"}], "name": "getAgreement", "outputs": [{"components": [{"internalType": "string", "name": "venueName", "type": "string"},{"internalType": "string", "name": "venueAddress", "type": "string"},{"internalType": "uint64", "name": "startTime", "type": "uint64"},{"internalType": "uint32", "name": "durationMinutes", "type": "uint32"},{"internalType": "string", "name": "artistSocialHandle", "type": "string"},{"internalType": "string", "name": "venueSocialHandle", "type": "string"},{"internalType": "address", "name": "artistWallet", "type": "address"},{"internalType": "address", "name": "venueWallet", "type": "address"},{"internalType": "uint256", "name": "paymentAmountUsdCents", "type": "uint256"},{"internalType": "uint8", "name": "status", "type": "uint8"},{"internalType": "bool", "name": "paymentRecorded", "type": "bool"}], "internalType": "struct PerformanceAgreementNFT.Agreement", "name": "", "type": "tuple"}], "stateMutability": "view", "type": "function"},
+  {"inputs": [{"components": [{"internalType": "string", "name": "venueName", "type": "string"},{"internalType": "string", "name": "venueAddress", "type": "string"},{"internalType": "uint64", "name": "startTime", "type": "uint64"},{"internalType": "uint32", "name": "durationMinutes", "type": "uint32"},{"internalType": "string", "name": "artistSocialHandle", "type": "string"},{"internalType": "string", "name": "venueSocialHandle", "type": "string"},{"internalType": "address", "name": "artistWallet", "type": "address"},{"internalType": "address", "name": "venueWallet", "type": "address"},{"internalType": "uint256", "name": "paymentAmountUsdCents", "type": "uint256"}], "internalType": "struct PerformanceAgreementNFT.AgreementInput", "name": "input", "type": "tuple"}], "name": "createVenueAgreement", "outputs": [{"internalType": "uint256", "name": "venueTokenId", "type": "uint256"}], "stateMutability": "nonpayable", "type": "function"},
+  {"inputs": [{"components": [{"internalType": "string", "name": "venueName", "type": "string"},{"internalType": "string", "name": "venueAddress", "type": "string"},{"internalType": "uint64", "name": "startTime", "type": "uint64"},{"internalType": "uint32", "name": "durationMinutes", "type": "uint32"},{"internalType": "string", "name": "artistSocialHandle", "type": "string"},{"internalType": "string", "name": "venueSocialHandle", "type": "string"},{"internalType": "address", "name": "artistWallet", "type": "address"},{"internalType": "address", "name": "venueWallet", "type": "address"},{"internalType": "uint256", "name": "paymentAmountUsdCents", "type": "uint256"}], "internalType": "struct PerformanceAgreementNFT.AgreementInput", "name": "input", "type": "tuple"},{"internalType": "bytes", "name": "artistSignature", "type": "bytes"}], "name": "createAgreementWithArtistSig", "outputs": [{"internalType": "uint256", "name": "tokenId", "type": "uint256"}], "stateMutability": "nonpayable", "type": "function"},
+  {"inputs": [{"internalType": "uint256", "name": "tokenId", "type": "uint256"}], "name": "markCompleted", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+  {"inputs": [{"internalType": "uint256", "name": "tokenId", "type": "uint256"}], "name": "raiseDispute", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+  {"inputs": [{"internalType": "uint256", "name": "tokenId", "type": "uint256"}], "name": "recordPayment", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+  {"inputs": [{"internalType": "uint256", "name": "tokenId", "type": "uint256"}], "name": "resolveDispute", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+  {"inputs": [{"internalType": "uint256", "name": "tokenId", "type": "uint256"}], "name": "tokenURI", "outputs": [{"internalType": "string", "name": "", "type": "string"}], "stateMutability": "view", "type": "function"},
+  {"inputs": [], "name": "totalMinted", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"},
+  {"inputs": [], "name": "nextTokenId", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"},
+  {"inputs": [{"internalType": "address", "name": "owner", "type": "address"}], "name": "tokensOfOwner", "outputs": [{"internalType": "uint256[]", "name": "", "type": "uint256[]"}], "stateMutability": "view", "type": "function"},
+  {"inputs": [{"internalType": "uint256", "name": "venueTokenId", "type": "uint256"}], "name": "getArtistTokenForVenue", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"}
 ]
